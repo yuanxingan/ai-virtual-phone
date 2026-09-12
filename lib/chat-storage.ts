@@ -18,6 +18,7 @@ export const DEFAULT_VISION_IMAGE_PROMPT_LIMIT = 1;
 export const MAX_VISION_IMAGE_PROMPT_LIMIT = 20;
 export const CHAT_INITIAL_VISIBLE_MESSAGE_COUNT = 50;
 export const CHAT_LOAD_MORE_MESSAGE_COUNT = 30;
+export const CHAT_MAX_MEMORY_MESSAGES = 200; // 内存最多保留 200 条消息，超出自动卸载
 
 export function normalizeVisionImagePromptLimit(value: unknown): number {
     if (value === undefined || value === null || value === "") return DEFAULT_VISION_IMAGE_PROMPT_LIMIT;
@@ -1128,7 +1129,8 @@ export function reassignChatSessionMessages(fromSessionId: string, toSessionId: 
 // ── CRUD for Messages ─────────────────────────
 export function loadChatMessages(sessionId: string, limit?: number): ChatMessage[] {
     const all = getSortedSessionMessages(sessionId);
-    if (limit && limit < all.length) return all.slice(-limit);
+    const effectiveLimit = Math.min(limit ?? CHAT_MAX_MEMORY_MESSAGES, CHAT_MAX_MEMORY_MESSAGES);
+    if (effectiveLimit < all.length) return all.slice(-effectiveLimit);
     return all;
 }
 
@@ -2215,3 +2217,5 @@ export function getLatestCharacterStateValues(
 
     return candidates[0]?.stateValues || [];
 }
+
+
