@@ -79,8 +79,3 @@
   for = "/default-wallpaper.webp"
   [headers.values]
     Cache-Control = "public, max-age=31536000, immutable"
-
-# 禁用 21YunBox 插件
-[[plugins]]
-  package = "@21yunbox/netlify-plugin-21yunbox-deploy-to-china-cdn"
-  disabled = true
