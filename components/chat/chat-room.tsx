@@ -782,12 +782,7 @@ const ChatTextInputBar = memo(forwardRef<ChatTextInputHandle, {
                 ref={textareaRef}
                 rows={1}
                 value={inputText}
-                onChange={e => {
-                    setInputText(e.target.value);
-                    setSuggestClosed(false);
-                    e.target.style.height = "auto";
-                    e.target.style.height = Math.min(e.target.scrollHeight, 120) + "px";
-                }}
+                onChange={(e) => { setInputText(e.target.value); setSuggestClosed(false); requestAnimationFrame(() => { e.target.style.height = "auto"; e.target.style.height = Math.min(e.target.scrollHeight, 120) + "px"; }); }}
                 onFocus={(e) => {
                     if (panelOpen) {
                         e.target.blur();
@@ -6749,3 +6744,4 @@ export function ChatRoom({ session, onBack, onDeleted }: ChatRoomProps) {
         </div >
     );
 }
+
