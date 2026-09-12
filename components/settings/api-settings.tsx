@@ -151,7 +151,7 @@ export function ApiSettings() {
             } else {
                 throw new Error("返回数据格式不符合预期");
             }
-            setFetchedModels(prev => ({ ...prev, [config.id]: modelNames }));
+            setFetchedModels(prev => ({ ...prev, [config.id]: modelNames.sort() }));
             setTestResult(prev => ({ ...prev, [config.id]: { success: true, message: `成功获取 ${modelNames.length} 个模型` } }));
         } catch (error: unknown) {
             const msg = error instanceof Error ? error.message : String(error);
