@@ -60,6 +60,7 @@ import {
   type StorySession,
   updateStorySession,
 } from "@/lib/story-storage";
+import { enterStoryPresence, exitStoryPresence } from "@/lib/story-presence";
 import { SessionCustomCSS } from "@/components/ui/session-custom-css";
 import { STORY_CSS_EXAMPLE } from "@/lib/css-examples";
 import { applyEditOutputRegex } from "@/lib/llm-prompt-assembler";
@@ -330,6 +331,13 @@ export function StoryApp({ onClose }: StoryAppProps) {
       return next;
     });
   }, []);
+
+  // 剧情同场登记：正在和某角色走剧情时，暂停该角色的线上主动发消息。
+  useEffect(() => {
+    if (!activeCharacterId) return;
+    enterStoryPresence(activeCharacterId);
+    return () => exitStoryPresence(activeCharacterId);
+  }, [activeCharacterId]);
 
   useEffect(() => {
     mountedRef.current = true;

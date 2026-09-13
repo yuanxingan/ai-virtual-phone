@@ -48,6 +48,7 @@ import {
     removeTimedWakeSchedule,
     type TimedWakeSchedule,
 } from "./timed-wake-storage";
+import { isStoryPresenceActive } from "./story-presence";
 import {
     getMenstrualPeriodCareEvent,
     hasMenstrualPeriodCareTriggered,
@@ -71,6 +72,13 @@ function resolveFollowUpSenderName(sessionId: string): string {
     const alias = sess.alias?.trim();
     if (alias) return alias;
     return loadCharacters().find(character => character.id === sess.contactId)?.name?.trim() || "角色";
+}
+
+/** 剧情模式同场判断：用户正和该角色走剧情时，线上主动发消息暂缓。 */
+function isSessionStoryActive(session: { isGroup?: boolean; contactId?: string; participantIds?: string[] | null } | null | undefined): boolean {
+    if (!session) return false;
+    if (session.isGroup) return (session.participantIds ?? []).some(id => isStoryPresenceActive(id));
+    return isStoryPresenceActive(session.contactId);
 }
 
 function resolveTimedWakeElapsedMinutes(sched: TimedWakeSchedule, history: ChatMessage[], atMs: number): number {
@@ -208,6 +216,7 @@ export async function requestBackgroundChatReply(sessionId: string): Promise<{ o
     if (backgroundReplyFiringSet.has(sessionId)) return { ok: false, skipped: "already_running" };
     const session = loadChatSessions().find(s => s.id === sessionId);
     if (!session) return { ok: false, skipped: "missing_session" };
+    if (isSessionStoryActive(session)) return { ok: false, skipped: "story_active" };
 
     backgroundReplyFiringSet.add(sessionId);
     try {
@@ -354,6 +363,7 @@ function pollSchedules() {
     try {
         const schedules = loadAllFollowUpSchedules();
         const now = Date.now();
+        let sessionsCache: ReturnType<typeof loadChatSessions> | null = null;
         for (const sched of schedules) {
             if (sched.fireAt > now) {
                 const remainSec = Math.round((sched.fireAt - now) / 1000);
@@ -361,6 +371,11 @@ function pollSchedules() {
                 continue;
             }
             if (firingSet.has(sched.sessionId)) continue; // already in-flight
+            if (!sessionsCache) sessionsCache = loadChatSessions();
+            if (isSessionStoryActive(sessionsCache.find(s => s.id === sched.sessionId))) {
+                console.log(`[FollowUp] Deferred (story active): session=${sched.sessionId}`);
+                continue; // 剧情同场，预约保留，退出剧情后自然补发
+            }
             console.log(`[FollowUp] Firing now for session=${sched.sessionId}, count=${sched.count}`);
             fireFollowUp(sched); // intentionally not awaited — fire & forget
         }
@@ -374,10 +389,16 @@ function pollSchedules() {
 
 function pollTimedWakeSchedules(now: number) {
     const schedules = loadTimedWakeSchedules();
+    let sessionsCache: ReturnType<typeof loadChatSessions> | null = null;
     for (const sched of schedules) {
         if (sched.fireAt > now) continue;
         if (timedWakeFiringSet.has(sched.id)) continue;
         if (now < scheduledOutboxGraceUntil) continue;
+        if (!sessionsCache) sessionsCache = loadChatSessions();
+        if (isSessionStoryActive(sessionsCache.find(s => s.id === sched.sessionId))) {
+            console.log(`[TimedWake] Deferred (story active): session=${sched.sessionId}`);
+            continue; // 剧情同场，预约保留，退出剧情后补发
+        }
         console.log(`[TimedWake] Firing now for session=${sched.sessionId}`);
         fireTimedWake(sched);
     }
@@ -407,6 +428,7 @@ function pollMenstrualPeriodCare(now: number) {
 
     for (const characterId of selectedIds) {
         if (hasMenstrualPeriodCareTriggered(characterId, event.cycleKey)) continue;
+        if (isStoryPresenceActive(characterId)) continue; // 剧情同场，本次先不打扰
         const session = latestSessionByCharacter.get(characterId);
         if (!session) continue;
         const firingKey = `${characterId}:${event.cycleKey}`;
@@ -545,6 +567,7 @@ function pollIdleReconnect(now: number) {
     for (const rule of loadIdleReconnectRules()) {
         if (idleReconnectFiringSet.has(rule.id)) continue;
         if (firingSet.has(rule.sessionId)) continue;
+        if (isStoryPresenceActive(rule.characterId)) continue; // 剧情同场，先不打扰
         // 追问链正在管这个会话时不叠加打扰
         if (loadAllFollowUpSchedules().some(sched => sched.sessionId === rule.sessionId)) continue;
 
