@@ -1129,6 +1129,11 @@
     will-change: transform;
   }
 
+  /* 输入法顶屏期间禁用过渡：防止键盘弹出/收起时整屏先跳上去再落下来的弹跳感 */
+  html[data-keyboard-lift] .phone-shell-wrap {
+    transition: none !important;
+  }
+
   .phone-shell-wrap .phone-case {
     padding: 0;
     border: 0;

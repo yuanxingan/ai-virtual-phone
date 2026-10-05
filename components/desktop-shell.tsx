@@ -924,6 +924,7 @@ function useAndroidCaretKeyboardLift() {
     const root = document.documentElement;
     if (!/Android/i.test(navigator.userAgent)) {
       root.style.removeProperty("--mobile-keyboard-lift");
+      delete root.dataset.keyboardLift;
       return;
     }
 
@@ -939,8 +940,10 @@ function useAndroidCaretKeyboardLift() {
       currentLift = rounded;
       if (rounded > 0) {
         root.style.setProperty("--mobile-keyboard-lift", `${rounded}px`);
+        root.dataset.keyboardLift = "true";
       } else {
         root.style.removeProperty("--mobile-keyboard-lift");
+        delete root.dataset.keyboardLift;
       }
     };
 
@@ -1010,6 +1013,7 @@ function useAndroidCaretKeyboardLift() {
       viewport?.removeEventListener("resize", handleViewportChange);
       viewport?.removeEventListener("scroll", handleViewportChange);
       root.style.removeProperty("--mobile-keyboard-lift");
+      delete root.dataset.keyboardLift;
     };
   }, []);
 }
