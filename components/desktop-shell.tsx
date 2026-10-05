@@ -925,8 +925,10 @@ function useAndroidCaretKeyboardLift() {
     if (!/Android/i.test(navigator.userAgent)) {
       root.style.removeProperty("--mobile-keyboard-lift");
       delete root.dataset.keyboardLift;
+      delete root.dataset.androidKeyboard;
       return;
     }
+    root.dataset.androidKeyboard = "true";
 
     const mobileMq = window.matchMedia("(max-width: 500px) and (hover: none) and (pointer: coarse)");
     const viewport = window.visualViewport;
@@ -950,6 +952,12 @@ function useAndroidCaretKeyboardLift() {
     const update = () => {
       raf = 0;
       const element = focusedElement;
+      // 安卓现在用 100dvh + interactive-widget=resizes-content，浏览器会自动调整可视区域，
+      // 整屏 translate 抬起只会露出黑底，所以不再做手动顶屏。
+      if (/Android/i.test(navigator.userAgent)) {
+        applyLift(0);
+        return;
+      }
       if (!element || document.activeElement !== element || !mobileMq.matches || !viewport) {
         applyLift(0);
         return;
@@ -1014,6 +1022,7 @@ function useAndroidCaretKeyboardLift() {
       viewport?.removeEventListener("scroll", handleViewportChange);
       root.style.removeProperty("--mobile-keyboard-lift");
       delete root.dataset.keyboardLift;
+      delete root.dataset.androidKeyboard;
     };
   }, []);
 }

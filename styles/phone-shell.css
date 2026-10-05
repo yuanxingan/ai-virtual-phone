@@ -1460,3 +1460,12 @@
 .folder-dots .dot.active {
   background: color-mix(in srgb, var(--c-home-label, #ffffff) 85%, transparent);
 }
+  /* 安卓键盘弹出时使用动态视口高度，避免 100lvh 比可视区域大而露出黑/空白底 */
+  html[data-android-keyboard],
+  html[data-android-keyboard] body,
+  html[data-android-keyboard] .app-root {
+    height: 100dvh;
+  }
+  html[data-android-keyboard] :root {
+    --phone-screen-height: 100dvh;
+  }
